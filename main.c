@@ -87,9 +87,11 @@ void handle_buffer(void)
 		{
 			blink_flag = 1;
 
-			if (*(ch + 4 + 4) == 'Z')
+			if (*(ch + 8) == 'Z')
 			{
-				fq = (*(ch + 4 + 0) - 0x30) * 1000 + (*(ch + 4 + 1) - 0x30) * 100 + (*(ch + 4 + 2) - 0x30) * 10 + (*(ch + 4 + 3) - 0x30) * 1;
+				char freq_str[5] = {0}; // array with 4 chars after FREQ
+				strncpy(freq_str, ch + 5, 4); // copy 4 chars after FREQ to freq_str
+				fq = atoi(freq_str); // make freq_str to int
 				reset_buffer();
 			}
 
