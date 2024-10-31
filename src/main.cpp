@@ -9,6 +9,7 @@ int main(int argc, char *argv[]) {
   QQmlApplicationEngine engine;
 
   LedHandler *ledHandler = new LedHandler();
+
   engine.rootContext()->setContextProperty("ledHandler", ledHandler);
 
   const QUrl url(QStringLiteral("qrc:qml/Main.qml"));

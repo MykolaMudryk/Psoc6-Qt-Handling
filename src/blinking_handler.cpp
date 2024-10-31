@@ -5,6 +5,7 @@
 SetConnection::SetConnection(QObject *parent) : QObject(parent) {
   serialPort = new QSerialPort(this);
   setupSerialPort();
+
   connect(serialPort, &QSerialPort::readyRead, this, &SetConnection::readData);
 }
 
@@ -16,7 +17,7 @@ SetConnection::~SetConnection() {
 
 void SetConnection::sendCommand(const QByteArray &command) {
   if (serialPort->isOpen()) {
-    qint64 bytesWritten = serialPort->write(command + "\r\n");
+    qint64 bytesWritten = serialPort->write(command);
 
     qDebug() << "Sending command:" << command;
 
@@ -40,12 +41,21 @@ void SetConnection::setupSerialPort() {
 
 void SetConnection::readData() {
   QByteArray data = serialPort->readLine();
-  // qDebug() << "Received data:" << data;
+  buffer.append(data);
 
-  QString receivedString = QString::fromUtf8(data);
+  int newlineIndex;
+  QString lastReceivedString;
 
-  if (receivedString.trimmed() == "sw2") {
-    emit sw2Pressed();
+  while ((newlineIndex = buffer.indexOf('\n')) != -1) {
+    QByteArray line = buffer.left(newlineIndex);
+
+    buffer.remove(0, newlineIndex + 1);
+
+    lastReceivedString = QString::fromUtf8(line).trimmed();
+
+    emit commandReceived(lastReceivedString);
+
+    qDebug() << "Received data on SetConnection:" << lastReceivedString;
   }
 }
 
@@ -56,6 +66,8 @@ SetConnection *SetConnection::getInstance() {
 
 LedHandler::LedHandler(QObject *parent) : QObject(parent) {
   connection = SetConnection::getInstance();
+  connect(connection, &SetConnection::commandReceived, this,
+          &LedHandler::handleUartCommands);
 }
 
 void LedHandler::setOn() {
@@ -74,7 +86,21 @@ void LedHandler::setBlink() {
 }
 
 void LedHandler::setBlinkFrequency(const int &frequency) {
-  QString freqString = QString("FREQ%1Z").arg(frequency, 4, 10, QChar('0'));
+  QString freqString = QString("FREQ%1Z").arg(frequency);
   QByteArray command = freqString.toUtf8();
   connection->sendCommand(command);
+}
+
+void LedHandler::setBrightness(const float &brightness) {
+  QString brightnessString =
+      QString("BRIGHT%1Z").arg(QString::number(brightness, 'f', 1));
+  // qDebug() << "Sending command:" << command;
+  QByteArray command = brightnessString.toUtf8();
+  connection->sendCommand(command);
+}
+
+void LedHandler::handleUartCommands(QString &command) {
+  if (command == "sw2") {
+    emit sw2Pressed();
+  }
 }
