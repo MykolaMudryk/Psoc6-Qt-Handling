@@ -15,7 +15,6 @@ uint8_t idx;
 
 uint8_t handled_flag;
 uint8_t blink_flag;
-uint8_t brightness_flag;
 
 uint32_t ticks;
 uint32_t last_toggle;
@@ -87,7 +86,6 @@ void handle_buffer(void) {
     ch = strstr((const char *)buffer, "Off");
     if (ch) {
       blink_flag = 0;
-      brightness_flag = 0;
       cyhal_pwm_set_duty_cycle(&pwm_led_control, PWM_DUTY_CYCLE_OFF,
                                PWM_ON_OFF_FREQUENCY);
       reset_buffer();
@@ -98,7 +96,6 @@ void handle_buffer(void) {
     if (ch) {
       cyhal_uart_putc(&cy_retarget_io_uart_obj, fq);
       blink_flag = 1;
-      brightness_flag = 0;
       reset_buffer();
       return;
     }
@@ -130,7 +127,6 @@ void handle_buffer(void) {
 
     ch = strstr((const char *)buffer, "BRIGHT");
     if (ch) {
-      // brightness_flag = 1;
       blink_flag = 0;
       char *z_position = strchr(ch, 'Z');
 
