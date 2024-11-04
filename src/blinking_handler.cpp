@@ -2,20 +2,20 @@
 
 #include "QtCore/qdebug.h"
 
-SetConnection::SetConnection(QObject *parent) : QObject(parent) {
+ConnectionHandler::ConnectionHandler(QObject *parent) : QObject(parent) {
   serialPort = new QSerialPort(this);
-  setupSerialPort();
 
-  connect(serialPort, &QSerialPort::readyRead, this, &SetConnection::readData);
+  connect(serialPort, &QSerialPort::readyRead, this,
+          &ConnectionHandler::readData);
 }
 
-SetConnection::~SetConnection() {
+ConnectionHandler::~ConnectionHandler() {
   if (serialPort->isOpen()) {
     serialPort->close();
   }
 }
 
-void SetConnection::sendCommand(const QByteArray &command) {
+void ConnectionHandler::sendCommand(const QByteArray &command) {
   if (serialPort->isOpen()) {
     qint64 bytesWritten = serialPort->write(command);
 
@@ -27,10 +27,9 @@ void SetConnection::sendCommand(const QByteArray &command) {
   }
 }
 
-void SetConnection::setupSerialPort() {
-  serialPort->setPortName("/dev/tty.usbmodem14203");
-  serialPort->setBaudRate(
-      QSerialPort::Baud115200);  // або інший значущий baudrate
+void ConnectionHandler::setupSerialPort(QString port) {
+  serialPort->setPortName(port);
+  serialPort->setBaudRate(QSerialPort::Baud115200);
 
   if (serialPort->open(QIODevice::ReadWrite)) {
     qDebug() << "Serial port opened successfully";
@@ -39,7 +38,17 @@ void SetConnection::setupSerialPort() {
   }
 }
 
-void SetConnection::readData() {
+QStringList ConnectionHandler::getAvailablePorts() {
+  QStringList portList;
+  QList<QSerialPortInfo> ports = QSerialPortInfo::availablePorts();
+
+  for (QSerialPortInfo &port : ports) {
+    portList.append(port.portName());
+  }
+  return portList;
+}
+
+void ConnectionHandler::readData() {
   QByteArray data = serialPort->readLine();
   buffer.append(data);
 
@@ -55,40 +64,40 @@ void SetConnection::readData() {
 
     emit commandReceived(lastReceivedString);
 
-    qDebug() << "Received data on SetConnection:" << lastReceivedString;
+    qDebug() << "Received data on ConnectionHandler:" << lastReceivedString;
   }
 }
 
-SetConnection *SetConnection::getInstance() {
-  static SetConnection instance;
-  return &instance;
+ConnectionHandler &ConnectionHandler::getInstance() {
+  static ConnectionHandler instance;
+  return instance;
 }
 
-LedHandler::LedHandler(QObject *parent) : QObject(parent) {
-  connection = SetConnection::getInstance();
-  connect(connection, &SetConnection::commandReceived, this,
+LedHandler::LedHandler(QObject *parent)
+    : QObject(parent), connection(ConnectionHandler::getInstance()) {
+  connect(&connection, &ConnectionHandler::commandReceived, this,
           &LedHandler::handleUartCommands);
 }
 
 void LedHandler::setOn() {
   command = "On";
-  connection->sendCommand(command.toUtf8());
+  connection.sendCommand(command.toUtf8());
 }
 
 void LedHandler::setOff() {
   command = "Off";
-  connection->sendCommand(command.toUtf8());
+  connection.sendCommand(command.toUtf8());
 }
 
 void LedHandler::setBlink() {
   command = "Blink";
-  connection->sendCommand(command.toUtf8());
+  connection.sendCommand(command.toUtf8());
 }
 
 void LedHandler::setBlinkFrequency(const int &frequency) {
   QString freqString = QString("FREQ%1Z").arg(frequency);
   QByteArray command = freqString.toUtf8();
-  connection->sendCommand(command);
+  connection.sendCommand(command);
 }
 
 void LedHandler::setBrightness(const float &brightness) {
@@ -96,7 +105,7 @@ void LedHandler::setBrightness(const float &brightness) {
       QString("BRIGHT%1Z").arg(QString::number(brightness, 'f', 1));
   // qDebug() << "Sending command:" << command;
   QByteArray command = brightnessString.toUtf8();
-  connection->sendCommand(command);
+  connection.sendCommand(command);
 }
 
 void LedHandler::handleUartCommands(QString &command) {

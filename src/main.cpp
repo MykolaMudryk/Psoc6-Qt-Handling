@@ -9,8 +9,10 @@ int main(int argc, char *argv[]) {
   QQmlApplicationEngine engine;
 
   LedHandler *ledHandler = new LedHandler();
+  ConnectionHandler &connection = ConnectionHandler::getInstance();
 
   engine.rootContext()->setContextProperty("ledHandler", ledHandler);
+  engine.rootContext()->setContextProperty("connection", &connection);
 
   const QUrl url(QStringLiteral("qrc:qml/Main.qml"));
 

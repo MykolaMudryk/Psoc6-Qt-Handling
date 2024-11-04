@@ -1,13 +1,14 @@
-#ifndef BLINKING_HANDLER_H
-#define BLINKING_HANDLER_H
+#pragma once
 
 #include <QObject>
 #include <QSerialPort>
 #include <QString>
+#include <QtSerialPort/QSerialPortInfo>
 
+#include "blinking_handler.h"
 class LedHandler;
 
-class SetConnection : public QObject {
+class ConnectionHandler : public QObject {
   Q_OBJECT
 
  private:
@@ -16,17 +17,18 @@ class SetConnection : public QObject {
 
   QByteArray buffer;
 
-  explicit SetConnection(QObject *parent = nullptr);
+  explicit ConnectionHandler(QObject *parent = nullptr);
 
  public:
-  ~SetConnection();
+  ~ConnectionHandler();
 
   void sendCommand(const QByteArray &command);
-  void setupSerialPort();
+  Q_INVOKABLE void setupSerialPort(QString port);
+  Q_INVOKABLE QStringList getAvailablePorts();
 
-  static SetConnection *getInstance();
-  SetConnection(const SetConnection &) = delete;
-  SetConnection &operator=(const SetConnection &) = delete;
+  static ConnectionHandler &getInstance();
+  ConnectionHandler(const ConnectionHandler &) = delete;
+  ConnectionHandler &operator=(const ConnectionHandler &) = delete;
 
  public slots:
   void readData();
@@ -38,7 +40,7 @@ class SetConnection : public QObject {
 class LedHandler : public QObject {
   Q_OBJECT
  private:
-  SetConnection *connection;
+  ConnectionHandler &connection;
   QString command;
 
  public:
@@ -56,5 +58,3 @@ class LedHandler : public QObject {
  signals:
   void sw2Pressed();
 };
-
-#endif  // BLINKING_HANDLER_H

@@ -8,6 +8,21 @@ ApplicationWindow {
   title: qsTr("LED Control")
   visibility: Window.FullScreen
 
+  ComboBox {
+    id: portComboBox
+
+    displayText: "Port: " + currentText
+
+    model: connection.getAvailablePorts()
+    onCurrentTextChanged: {
+      connection.setupSerialPort(currentText)
+    }
+
+    anchors {
+      horizontalCenter: parent.horizontalCenter
+    }
+  }
+
   Row {
     id: checkboxRow
 
